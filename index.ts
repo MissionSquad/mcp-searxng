@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { PuppeteerScraper } from "@missionsquad/puppeteer-scraper";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -13,7 +14,7 @@ import { NodeHtmlMarkdown } from "node-html-markdown";
 const packageVersion = "0.4.6";
 
 const WEB_SEARCH_TOOL: Tool = {
-  name: "searxng_web_search",
+  name: "web_search",
   description:
     "Performs a web search using the SearXNG API, ideal for general queries, news, articles, and online content. " +
     "Use this for broad information gathering, recent events, or when you need diverse web sources.",
@@ -30,24 +31,26 @@ const WEB_SEARCH_TOOL: Tool = {
         description: "Search page number (starts at 1)",
         default: 1,
       },
+      count: {
+        type: "number",
+        description: "Number of results per page (default: 10)",
+        default: 10,
+      },
       time_range: {
         type: "string",
         description: "Time range of search (day, month, year)",
         enum: ["day", "month", "year"],
-        default: "",
       },
       language: {
         type: "string",
         description:
           "Language code for search results (e.g., 'en', 'fr', 'de'). Default is instance-dependent.",
-        default: "all",
       },
       safesearch: {
         type: "string",
         description:
-          "Safe search filter level (0: None, 1: Moderate, 2: Strict)",
+          "Safe search filter level (0: None, 1: Moderate, 2: Strict) (default: 0)",
         enum: ["0", "1", "2"],
-        default: "0",
       },
     },
     required: ["query"],
@@ -55,9 +58,9 @@ const WEB_SEARCH_TOOL: Tool = {
 };
 
 const READ_URL_TOOL: Tool = {
-  name: "web_url_read",
+  name: "get_url_content",
   description:
-    "Read the content from an URL. " +
+    "Get the content of a URL. " +
     "Use this for further information retrieving to understand the content of each URL.",
   inputSchema: {
     type: "object",
@@ -74,18 +77,18 @@ const READ_URL_TOOL: Tool = {
 // Server implementation
 const server = new Server(
   {
-    name: "ihor-sokoliuk/mcp-searxng",
+    name: "@missionsquad/mcp-searxng-puppeteer",
     version: packageVersion,
   },
   {
     capabilities: {
       resources: {},
       tools: {
-        searxng_web_search: {
+        web_search: {
           description: WEB_SEARCH_TOOL.description,
           schema: WEB_SEARCH_TOOL.inputSchema,
         },
-        web_url_read: {
+        get_url_content: {
           description: READ_URL_TOOL.description,
           schema: READ_URL_TOOL.inputSchema,
         },
@@ -105,6 +108,7 @@ interface SearXNGWeb {
 function isSearXNGWebSearchArgs(args: unknown): args is {
   query: string;
   pageno?: number;
+  count?: number;
   time_range?: string;
   language?: string;
   safesearch?: string;
@@ -120,6 +124,7 @@ function isSearXNGWebSearchArgs(args: unknown): args is {
 async function performWebSearch(
   query: string,
   pageno: number = 1,
+  count: number = 10,
   time_range?: string,
   language: string = "all",
   safesearch?: string
@@ -129,6 +134,7 @@ async function performWebSearch(
   url.searchParams.set("q", query);
   url.searchParams.set("format", "json");
   url.searchParams.set("pageno", pageno.toString());
+  url.searchParams.set("count", count.toString());
 
   if (
     time_range !== undefined &&
@@ -169,32 +175,51 @@ async function performWebSearch(
     .map((r) => `Title: ${r.title}\nDescription: ${r.content}\nURL: ${r.url}`)
     .join("\n\n");
 }
+/**
+ * export interface ScraperOptions {
+    headless?: boolean;
+    ignoreHTTPSErrors?: boolean;
+    proxyUrl?: string;
+    blockResources?: boolean;
+    cacheSize: number;
+    enableGPU?: boolean;
+}
+ */
+const scraper = new PuppeteerScraper({
+  headless: true,
+  ignoreHTTPSErrors: false,
+  blockResources: false,
+  cacheSize: 1000,
+  enableGPU: false,
+});
+let scraperInitialized = false;
 
 async function fetchAndConvertToMarkdown(
   url: string,
   timeoutMs: number = 10000
 ) {
   // Create an AbortController instance
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  // const controller = new AbortController();
+  // const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // Fetch the URL with the abort signal
-    const response = await fetch(url, {
-      signal: controller.signal,
-    });
+    if (!scraperInitialized) {
+      await scraper.init();
+      scraperInitialized = true;
+    }
+    const response = await scraper.scrapePage(url);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch the URL: ${response.statusText}`);
+    if (response == null) {
+      throw new Error(`Failed to fetch the URL: ${url}`);
     }
 
     // Retrieve HTML content
-    const htmlContent = await response.text();
+    const { content } = response;
 
     // Convert HTML to Markdown
-    const markdownContent = NodeHtmlMarkdown.translate(htmlContent);
+    // const markdownContent = NodeHtmlMarkdown.translate(htmlContent);
 
-    return markdownContent;
+    return content.text;
   } catch (error: any) {
     if (error.name === "AbortError") {
       throw new Error(`Request timed out after ${timeoutMs}ms`);
@@ -203,7 +228,7 @@ async function fetchAndConvertToMarkdown(
     throw error;
   } finally {
     // Clean up the timeout to prevent memory leaks
-    clearTimeout(timeoutId);
+    // clearTimeout(timeoutId);
   }
 }
 // Tool handlers
@@ -219,13 +244,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       throw new Error("No arguments provided");
     }
 
-    if (name === "searxng_web_search") {
+    if (name === "web_search") {
       if (!isSearXNGWebSearchArgs(args)) {
-        throw new Error("Invalid arguments for searxng_web_search");
+        throw new Error("Invalid arguments for web_search");
       }
       const {
         query,
         pageno = 1,
+        count = 10,
         time_range,
         language = "all",
         safesearch,
@@ -233,6 +259,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       const results = await performWebSearch(
         query,
         pageno,
+        count,
         time_range,
         language,
         safesearch
@@ -243,7 +270,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       };
     }
 
-    if (name === "web_url_read") {
+    if (name === "get_url_content") {
       const { url } = args;
       const result = await fetchAndConvertToMarkdown(url as string);
       return {

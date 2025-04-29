@@ -16,16 +16,18 @@ An [MCP server](https://modelcontextprotocol.io/introduction) implementation tha
 
 ## Tools
 
-- **searxng_web_search**
+- **web_search**
+
   - Execute web searches with pagination
   - Inputs:
     - `query` (string): The search query. This string is passed to external search services.
     - `pageno` (number, optional): Search page number, starts at 1 (default 1)
+    - `count` (number, optional): Number of results (default 10)
     - `time_range` (string, optional): Filter results by time range - one of: "day", "month", "year" (default: none)
     - `language` (string, optional): Language code for results (e.g., "en", "fr", "de") or "all" (default: "all")
     - `safesearch` (number, optional): Safe search filter level (0: None, 1: Moderate, 2: Strict) (default: instance setting)
 
-- **web_url_read**
+- **get_url_content**
   - Read and convert the content from a URL to markdown
   - Inputs:
     - `url` (string): The URL to fetch and process
@@ -55,10 +57,7 @@ npx -y @smithery/cli install @ihor-sokoliuk/server-searxng --client claude
   "mcpServers": {
     "searxng": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mcp-searxng"
-      ],
+      "args": ["-y", "mcp-searxng"],
       "env": {
         "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL"
       }
@@ -134,14 +133,7 @@ Add this to your `claude_desktop_config.json`:
   "mcpServers": {
     "searxng": {
       "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "SEARXNG_URL",
-        "mcp-searxng:latest"
-      ],
+      "args": ["run", "-i", "--rm", "-e", "SEARXNG_URL", "mcp-searxng:latest"],
       "env": {
         "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL"
       }
@@ -149,7 +141,6 @@ Add this to your `claude_desktop_config.json`:
   }
 }
 ```
-
 
 ## License
 
