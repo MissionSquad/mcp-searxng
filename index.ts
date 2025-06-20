@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+console.log('MCP-SearXNG: Starting up...');
+
 import { PuppeteerScraper } from "@missionsquad/puppeteer-scraper";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -304,6 +306,16 @@ async function runServer() {
 }
 
 runServer().catch((error) => {
-  console.error("Fatal error running server:", error);
+  console.error("MCP-SearXNG: Fatal error running server:", error);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('MCP-SearXNG: Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('MCP-SearXNG: Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });
