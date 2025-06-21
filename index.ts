@@ -187,50 +187,56 @@ async function performWebSearch(
     enableGPU?: boolean;
 }
  */
-const scraper = new PuppeteerScraper({
-  headless: true,
-  ignoreHTTPSErrors: false,
-  blockResources: false,
-  cacheSize: 1000,
-  enableGPU: false,
-});
-let scraperInitialized = false;
+// Defer scraper initialization to avoid blocking startup
+let scraper: PuppeteerScraper | null = null
+let scraperReady = false
 
-async function fetchAndConvertToMarkdown(
-  url: string,
-  timeoutMs: number = 10000
-) {
-  // Create an AbortController instance
-  // const controller = new AbortController();
-  // const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+const MAX_PUPPETEER_RETRIES = 5
+const INITIAL_RETRY_DELAY_MS = 15000 // 15 seconds
+
+async function initializePuppeteerWithRetries(retryCount = 0) {
+  try {
+    console.log(`MCP-SearXNG: Starting Puppeteer initialization (Attempt ${retryCount + 1}/${MAX_PUPPETEER_RETRIES})...`)
+    scraper = new PuppeteerScraper({
+      headless: true,
+      ignoreHTTPSErrors: false,
+      blockResources: false,
+      cacheSize: 1000,
+      enableGPU: false
+    })
+    await scraper.init()
+    scraperReady = true
+    console.log('MCP-SearXNG: Puppeteer initialized successfully.')
+  } catch (error) {
+    console.error(`MCP-SearXNG: Failed to initialize Puppeteer on attempt ${retryCount + 1}:`, error)
+    if (retryCount < MAX_PUPPETEER_RETRIES - 1) {
+      const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCount)
+      console.log(`MCP-SearXNG: Retrying in ${delay / 1000} seconds...`)
+      setTimeout(() => initializePuppeteerWithRetries(retryCount + 1), delay)
+    } else {
+      console.error('MCP-SearXNG: Max retries reached. Puppeteer initialization failed permanently for this session.')
+      // scraperReady will remain false, and the tool will report an error.
+    }
+  }
+}
+
+async function fetchAndConvertToMarkdown(url: string, timeoutMs: number = 10000) {
+  if (!scraperReady || !scraper) {
+    throw new Error('Puppeteer is not ready. Please try again in a few moments.')
+  }
 
   try {
-    if (!scraperInitialized) {
-      await scraper.init();
-      scraperInitialized = true;
-    }
-    const response = await scraper.scrapePage(url);
+    const response = await scraper.scrapePage(url)
 
     if (response == null) {
-      throw new Error(`Failed to fetch the URL: ${url}`);
+      throw new Error(`Failed to fetch the URL: ${url}`)
     }
 
-    // Retrieve HTML content
-    const { content } = response;
-
-    // Convert HTML to Markdown
-    // const markdownContent = NodeHtmlMarkdown.translate(htmlContent);
-
-    return content.text;
+    const { content } = response
+    return content.text
   } catch (error: any) {
-    if (error.name === "AbortError") {
-      throw new Error(`Request timed out after ${timeoutMs}ms`);
-    }
-    console.error("Error:", error.message);
-    throw error;
-  } finally {
-    // Clean up the timeout to prevent memory leaks
-    // clearTimeout(timeoutId);
+    console.error('Error during scrape:', error.message)
+    throw error
   }
 }
 // Tool handlers
@@ -273,12 +279,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     }
 
     if (name === "get_url_content") {
-      const { url } = args;
-      const result = await fetchAndConvertToMarkdown(url as string);
+      if (!scraperReady) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Tool not ready: Puppeteer is still initializing. Please try again in a few moments.'
+            }
+          ],
+          isError: true
+        }
+      }
+      const { url } = args
+      const result = await fetchAndConvertToMarkdown(url as string)
       return {
-        content: [{ type: "text", text: result }],
-        isError: false,
-      };
+        content: [{ type: 'text', text: result }],
+        isError: false
+      }
     }
 
     return {
@@ -301,11 +318,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
 });
 
 async function runServer() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  const transport = new StdioServerTransport()
+  await server.connect(transport)
+  // Start puppeteer initialization in the background with retries
+  initializePuppeteerWithRetries()
 }
 
-runServer().catch((error) => {
+runServer().catch(error => {
   console.error("MCP-SearXNG: Fatal error running server:", error);
   process.exit(1);
 });
