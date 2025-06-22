@@ -1,6 +1,6 @@
 {
   "name": "@missionsquad/mcp-searxng-puppeteer",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "MCP server for SearXNG & Puppeteer integration",
   "license": "MIT",
   "author": "Ihor Sokoliuk (https://github.com/@missionsquad)",
@@ -36,7 +36,7 @@
     "postversion": "node scripts/update-version.js && git add index.ts && git commit --amend --no-edit"
   },
   "dependencies": {
-    "@missionsquad/puppeteer-scraper": "^1.0.2",
+    "@missionsquad/puppeteer-scraper": "^1.1.1",
     "@modelcontextprotocol/sdk": "1.13.0",
     "node-html-markdown": "^1.3.0"
   },

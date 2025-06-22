@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-
-console.log('MCP-SearXNG: Starting up...');
-
 import { PuppeteerScraper } from "@missionsquad/puppeteer-scraper";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -12,8 +9,10 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { NodeHtmlMarkdown } from "node-html-markdown";
 
+console.error('MCP-SearXNG: Starting up...');
+
 // Use a static version string that will be updated by the version script
-const packageVersion = "0.4.6";
+const packageVersion = "0.5.5";
 
 const WEB_SEARCH_TOOL: Tool = {
   name: "web_search",
@@ -196,22 +195,26 @@ const INITIAL_RETRY_DELAY_MS = 15000 // 15 seconds
 
 async function initializePuppeteerWithRetries(retryCount = 0) {
   try {
-    console.log(`MCP-SearXNG: Starting Puppeteer initialization (Attempt ${retryCount + 1}/${MAX_PUPPETEER_RETRIES})...`)
+    console.error(
+      `MCP-SearXNG: Starting Puppeteer initialization (Attempt ${
+        retryCount + 1
+      }/${MAX_PUPPETEER_RETRIES})...`
+    );
     scraper = new PuppeteerScraper({
       headless: true,
-      ignoreHTTPSErrors: false,
+      ignoreHTTPSErrors: true,
       blockResources: false,
       cacheSize: 1000,
       enableGPU: false
     })
     await scraper.init()
     scraperReady = true
-    console.log('MCP-SearXNG: Puppeteer initialized successfully.')
+    console.error('MCP-SearXNG: Puppeteer initialized successfully.')
   } catch (error) {
     console.error(`MCP-SearXNG: Failed to initialize Puppeteer on attempt ${retryCount + 1}:`, error)
     if (retryCount < MAX_PUPPETEER_RETRIES - 1) {
       const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCount)
-      console.log(`MCP-SearXNG: Retrying in ${delay / 1000} seconds...`)
+      console.error(`MCP-SearXNG: Retrying in ${delay / 1000} seconds...`);
       setTimeout(() => initializePuppeteerWithRetries(retryCount + 1), delay)
     } else {
       console.error('MCP-SearXNG: Max retries reached. Puppeteer initialization failed permanently for this session.')
