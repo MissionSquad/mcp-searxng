@@ -2,6 +2,10 @@
 
 An MCP server implementation that integrates the SearxNG API, providing web search capabilities.
 
+<a href="https://glama.ai/mcp/servers/@MissionSquad/mcp-searxng">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@MissionSquad/mcp-searxng/badge" alt="@missionsquad/mcp-searxng-puppeteer MCP server" />
+</a>
+
 ## Features
 
 - **Web Search**: General queries, news, articles, with pagination.
