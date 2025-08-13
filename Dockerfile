@@ -1,14 +1,12 @@
-FROM node:22.12-alpine AS builder
-
-# Must be entire project because `prepare` script is run during `npm install` and requires all files.
-COPY ./ /app
-COPY tsconfig.json /tsconfig.json
+FROM node:slim AS builder
 
 WORKDIR /app
 
+COPY ./ /app
+
 RUN --mount=type=cache,target=/root/.npm npm install
 
-FROM node:22-alpine AS release
+FROM node:slim AS release
 
 WORKDIR /app
 

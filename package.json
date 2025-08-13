@@ -1,29 +1,48 @@
 {
-    "name": "@ihor-sokoliuk/server-searxng",
-    "version": "0.1.0",
-    "description": "MCP server for SearXNG integration",
-    "license": "MIT",
-    "author": "Ihor Sokoliuk (https://github.com/ihor-sokoliuk)",
-    "homepage": "https://github.com/ihor-sokoliuk/mcp-searxng",
-    "bugs": "https://github.com/ihor-sokoliuk/mcp-searxng/issues",
-    "type": "module",
-    "bin": {
-        "mcp-server-brave-search": "dist/index.js"
-    },
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "build": "tsc && shx chmod +x dist/*.js",
-        "prepare": "npm run build",
-        "watch": "tsc --watch"
-    },
-    "dependencies": {
-        "@modelcontextprotocol/sdk": "1.0.1"
-    },
-    "devDependencies": {
-        "@types/node": "^22.10.2",
-        "shx": "^0.3.4",
-        "typescript": "^5.7.2"
-    }
+  "name": "@missionsquad/mcp-searxng-puppeteer",
+  "version": "0.5.6",
+  "description": "MCP server for SearXNG & Puppeteer integration",
+  "license": "MIT",
+  "author": "Ihor Sokoliuk (https://github.com/@missionsquad)",
+  "homepage": "https://github.com/missionsquad/mcp-searxng",
+  "bugs": "https://github.com/missionsquad/mcp-searxng/issues",
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "searxng",
+    "search",
+    "web-search",
+    "claude",
+    "ai",
+    "pagination",
+    "smithery",
+    "url-reader",
+    "puppeteer"
+  ],
+  "type": "module",
+  "bin": {
+    "mcp-searxng": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/*.js",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "postversion": "node scripts/update-version.js && git add index.ts && git commit --amend --no-edit"
+  },
+  "dependencies": {
+    "@missionsquad/puppeteer-scraper": "^1.1.1",
+    "@modelcontextprotocol/sdk": "1.13.0",
+    "node-html-markdown": "^1.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "shx": "^0.4.0",
+    "typescript": "^5.8.3"
+  }
 }
