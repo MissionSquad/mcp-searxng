@@ -4,6 +4,10 @@ An [MCP server](https://modelcontextprotocol.io/introduction) implementation tha
 
 This server is a component of the [Mission Squad](https://missionsquad.ai) ecosystem, designed to provide reliable, agentic web browsing and information retrieval.
 
+<a href="https://glama.ai/mcp/servers/@MissionSquad/mcp-searxng">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@MissionSquad/mcp-searxng/badge" alt="@missionsquad/mcp-searxng-puppeteer MCP server" />
+</a>
+
 ## Features
 
 - **Web Search**: Perform general queries, find news, and access articles with robust filtering.
@@ -168,4 +172,4 @@ You can test the `@missionsquad/mcp-searxng-puppeteer` server and other MCP serv
 
 ## License
 
-This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the `LICENSE` file in the project repository.
+This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
